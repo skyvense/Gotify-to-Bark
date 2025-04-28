@@ -33,6 +33,7 @@ type Forwarder struct {
 	targetURL   string
 	gotifyHost  string
 	gotifyToken string
+	iconURL     string
 }
 
 func (f *Forwarder) sendMessage(msg *GotifyMessage) error {
@@ -46,7 +47,7 @@ func (f *Forwarder) sendMessage(msg *GotifyMessage) error {
 		"badge":      1,
 		"sound":      "minuet",
 		"group":      "Gotify",
-		"icon":       "https://day.app/assets/images/avatar.jpg",
+		"icon":       f.iconURL,
 		"url":        f.gotifyHost,
 		"device_key": strings.TrimPrefix(f.targetURL, "https://"),
 	}
@@ -162,11 +163,12 @@ func main() {
 	gotifyHost := flag.String("host", "", "Gotify server host (e.g., http://localhost:8080)")
 	gotifyToken := flag.String("token", "", "Gotify client token")
 	targetURL := flag.String("target", "", "Target URL to forward messages to")
+	iconURL := flag.String("icon", "https://day.app/assets/images/avatar.jpg", "Icon URL for notifications")
 	flag.Parse()
 
 	// Validate required parameters
 	if *gotifyHost == "" || *gotifyToken == "" || *targetURL == "" {
-		fmt.Println("Usage: gotify-forwarder -host <gotify-host> -token <gotify-token> -target <target-url>")
+		fmt.Println("Usage: gotify-forwarder -host <gotify-host> -token <gotify-token> -target <target-url> [-icon <icon-url>]")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -177,6 +179,7 @@ func main() {
 		targetURL:   *targetURL,
 		gotifyHost:  *gotifyHost,
 		gotifyToken: *gotifyToken,
+		iconURL:     *iconURL,
 	}
 
 	// Start forwarding

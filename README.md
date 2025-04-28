@@ -9,6 +9,7 @@
 - 详细的日志记录
 - 支持自定义消息格式
 - 支持 HTTPS/WSS 连接
+- 可自定义通知图标
 
 ## 安装
 
@@ -28,18 +29,23 @@
 ### 命令行参数
 
 ```bash
-go run main.go -host <gotify-host> -token <gotify-token> -target <bark-url>
+go run main.go -host <gotify-host> -token <gotify-token> -target <bark-url> [-icon <icon-url>]
 ```
 
 参数说明：
 - `-host`: Gotify 服务器地址（例如：https://gotify.example.com）
 - `-token`: Gotify 客户端 token
 - `-target`: Bark 服务器地址（例如：https://api.day.app/your-device-key）
+- `-icon`: 通知图标 URL（可选，默认为 https://day.app/assets/images/avatar.jpg）
 
 ### 示例
 
 ```bash
+# 使用默认图标
 go run main.go -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key
+
+# 使用自定义图标
+go run main.go -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key -icon https://example.com/icon.png
 ```
 
 ### 构建可执行文件
@@ -50,7 +56,11 @@ go build -o gotify2bark
 
 然后运行：
 ```bash
+# 使用默认图标
 ./gotify2bark -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key
+
+# 使用自定义图标
+./gotify2bark -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key -icon https://example.com/icon.png
 ```
 
 ## 消息格式
@@ -64,7 +74,7 @@ go build -o gotify2bark
     "badge": 1,
     "sound": "minuet",
     "group": "Gotify",
-    "icon": "https://day.app/assets/images/avatar.jpg",
+    "icon": "自定义图标URL",
     "url": "Gotify服务器地址"
 }
 ```
@@ -98,7 +108,9 @@ go build -o gotify2bark
                 "-token",
                 "your-token",
                 "-target",
-                "https://api.day.app/your-device-key"
+                "https://api.day.app/your-device-key",
+                "-icon",
+                "https://example.com/icon.png"
             ],
             "env": {},
             "showLog": true
