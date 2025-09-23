@@ -134,7 +134,7 @@ jobs:
       with:
         images: |
           ${{ secrets.DOCKER_USERNAME }}/gotify-to-bark
-          ghcr.io/${{ github.repository }}
+          ghcr.io/${{ github.repository_owner }}/gotify-to-bark
         tags: |
           type=ref,event=tag
           type=semver,pattern={{version}}
@@ -186,8 +186,8 @@ jobs:
           docker pull ${{ secrets.DOCKER_USERNAME }}/gotify-to-bark:latest
           
           # GitHub Container Registry
-          docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
-          docker pull ghcr.io/${{ github.repository }}:latest
+          docker pull ghcr.io/${{ github.repository_owner }}/gotify-to-bark:${{ steps.version.outputs.VERSION }}
+          docker pull ghcr.io/${{ github.repository_owner }}/gotify-to-bark:latest
           ```
           
           ### Binary Downloads
@@ -216,7 +216,7 @@ jobs:
             -e GOTIFY_TOKEN="your-gotify-token" \
             -e BARK_URL="your-bark-url" \
             -e ICON_URL="your-icon-url" \
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository_owner }}/gotify-to-bark:latest
           ```
           
           #### Using Binary
