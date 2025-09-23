@@ -34,8 +34,12 @@ WORKDIR /root/
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/gotify2bark .
 
-# 更改文件所有者
-RUN chown appuser:appgroup gotify2bark
+# 复制启动脚本
+COPY entrypoint.sh .
+
+# 设置执行权限并更改文件所有者
+RUN chmod +x entrypoint.sh gotify2bark && \
+    chown appuser:appgroup gotify2bark entrypoint.sh
 
 # 切换到非root用户
 USER appuser
@@ -50,4 +54,4 @@ ENV BARK_URL=""
 ENV ICON_URL=""
 
 # 运行应用
-ENTRYPOINT ["./gotify2bark"]
+ENTRYPOINT ["./entrypoint.sh"]
