@@ -1,17 +1,18 @@
-# This workflow will build a golang project
+# This workflow will build a golang project for multiple platforms and create releases
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: Build and Release
 
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
 
 jobs:
-
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,7 +20,137 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.20'
+        go-version: '1.21'
+
+    - name: Test
+      run: go test -v ./...
 
     - name: Build
       run: go build -v ./...
+
+  build:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          # macOS builds
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+          # Windows builds
+          - goos: windows
+            goarch: amd64
+            suffix: windows-amd64.exe
+          - goos: windows
+            goarch: arm64
+            suffix: windows-arm64.exe
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        mkdir -p dist
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o dist/gotify-to-bark-${{ matrix.suffix }} .
+        else
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o dist/gotify-to-bark-${{ matrix.suffix }} .
+        fi
+
+    - name: Create archive
+      run: |
+        cd dist
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          zip gotify-to-bark-${{ steps.version.outputs.VERSION }}-${{ matrix.suffix }}.zip gotify-to-bark-${{ matrix.suffix }}
+        else
+          tar -czf gotify-to-bark-${{ steps.version.outputs.VERSION }}-${{ matrix.suffix }}.tar.gz gotify-to-bark-${{ matrix.suffix }}
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: gotify-to-bark-${{ matrix.suffix }}
+        path: |
+          dist/gotify-to-bark-${{ steps.version.outputs.VERSION }}-${{ matrix.suffix }}.*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        release_name: Release ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## Changes in ${{ steps.version.outputs.VERSION }}
+          
+          ### Downloads
+          - **Linux AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz`
+          - **Linux ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz`
+          - **macOS AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz`
+          - **macOS ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-darwin-arm64.tar.gz`
+          - **Windows AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-windows-amd64.exe.zip`
+          - **Windows ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-windows-arm64.exe.zip`
+          
+          ### Installation
+          1. Download the appropriate binary for your platform
+          2. Extract the archive (if applicable)
+          3. Make the binary executable (Linux/macOS): `chmod +x gotify-to-bark-*`
+          4. Run the binary with appropriate flags
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets
+      run: |
+        for file in artifacts/*/gotify-to-bark-${{ steps.version.outputs.VERSION }}-*; do
+          if [ -f "$file" ]; then
+            echo "Uploading $file"
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                 -H "Content-Type: application/octet-stream" \
+                 --data-binary @"$file" \
+                 "${{ steps.create_release.outputs.upload_url }}?name=$(basename "$file")"
+          fi
+        done

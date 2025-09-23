@@ -16,6 +16,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Version information (set during build)
+var version = "dev"
+
 // Message represents a Gotify message
 type GotifyMessage struct {
 	Id       uint32 `json:"id"`
@@ -164,11 +167,19 @@ func main() {
 	gotifyToken := flag.String("token", "", "Gotify client token")
 	targetURL := flag.String("target", "", "Target URL to forward messages to")
 	iconURL := flag.String("icon", "https://day.app/assets/images/avatar.jpg", "Icon URL for notifications")
+	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
+
+	// Show version if requested
+	if *showVersion {
+		fmt.Printf("Gotify-to-Bark version %s\n", version)
+		os.Exit(0)
+	}
 
 	// Validate required parameters
 	if *gotifyHost == "" || *gotifyToken == "" || *targetURL == "" {
 		fmt.Println("Usage: gotify-forwarder -host <gotify-host> -token <gotify-token> -target <target-url> [-icon <icon-url>]")
+		fmt.Printf("Version: %s\n", version)
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
