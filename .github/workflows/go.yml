@@ -117,27 +117,27 @@ jobs:
         path: artifacts
 
     - name: Create Release
-       uses: softprops/action-gh-release@v1
-       with:
-         tag_name: ${{ steps.version.outputs.VERSION }}
-         name: Release ${{ steps.version.outputs.VERSION }}
-         body: |
-           ## Changes in ${{ steps.version.outputs.VERSION }}
-           
-           ### Downloads
-           - **Linux AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz`
-           - **Linux ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz`
-           - **macOS AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz`
-           - **macOS ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-darwin-arm64.tar.gz`
-           - **Windows AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-windows-amd64.exe.zip`
-           - **Windows ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-windows-arm64.exe.zip`
-           
-           ### Installation
-           1. Download the appropriate binary for your platform
-           2. Extract the archive (if applicable)
-           3. Make the binary executable (Linux/macOS): `chmod +x gotify-to-bark-*`
-           4. Run the binary with appropriate flags
-         files: |
-           artifacts/*/gotify-to-bark-${{ steps.version.outputs.VERSION }}-*
-         draft: false
-         prerelease: false
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: Release ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## Changes in ${{ steps.version.outputs.VERSION }}
+          
+          ### Downloads
+          - **Linux AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz`
+          - **Linux ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz`
+          - **macOS AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz`
+          - **macOS ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-darwin-arm64.tar.gz`
+          - **Windows AMD64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-windows-amd64.exe.zip`
+          - **Windows ARM64**: `gotify-to-bark-${{ steps.version.outputs.VERSION }}-windows-arm64.exe.zip`
+          
+          ### Installation
+          1. Download the appropriate binary for your platform
+          2. Extract the archive (if applicable)
+          3. Make the binary executable (Linux/macOS): `chmod +x gotify-to-bark-*`
+          4. Run the binary with appropriate flags
+        files: |
+          artifacts/*/gotify-to-bark-${{ steps.version.outputs.VERSION }}-*
+        draft: false
+        prerelease: false
