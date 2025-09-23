@@ -25,11 +25,13 @@ FROM alpine:latest
 # 安装ca-certificates用于HTTPS请求
 RUN apk --no-cache add ca-certificates tzdata
 
-# 创建非root用户
+# 创建非root用户和应用目录
 RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+    adduser -u 1001 -S appuser -G appgroup && \
+    mkdir -p /app && \
+    chown appuser:appgroup /app
 
-WORKDIR /root/
+WORKDIR /app
 
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/gotify2bark .

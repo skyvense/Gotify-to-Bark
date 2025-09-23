@@ -13,11 +13,25 @@
 
 ## 安装
 
+### 方式一：使用 Docker（推荐）
+
+直接拉取预构建的 Docker 镜像：
+
+```bash
+# 从 Docker Hub 拉取
+docker pull skyvense/gotify-to-bark:latest
+
+# 或从 GitHub Container Registry 拉取
+docker pull ghcr.io/skyvense/gotify-to-bark:latest
+```
+
+### 方式二：从源码构建
+
 1. 确保已安装 Go 1.21 或更高版本
 2. 克隆仓库：
    ```bash
-   git clone https://github.com/yourusername/gotify2bark.git
-   cd gotify2bark
+   git clone https://github.com/skyvense/Gotify-to-Bark.git
+   cd Gotify-to-Bark
    ```
 3. 安装依赖：
    ```bash
@@ -25,6 +39,57 @@
    ```
 
 ## 使用方法
+
+### Docker 方式（推荐）
+
+使用 Docker 是最简单的部署方式：
+
+```bash
+# 使用 Docker Hub
+docker run -d --name gotify2bark \
+  -e GOTIFY_HOST="https://gotify.example.com" \
+  -e GOTIFY_TOKEN="your-gotify-token" \
+  -e BARK_URL="https://api.day.app/your-device-key" \
+  -e ICON_URL="https://example.com/icon.png" \
+  skyvense/gotify-to-bark:latest
+
+# 或使用 GitHub Container Registry
+docker run -d --name gotify2bark \
+  -e GOTIFY_HOST="https://gotify.example.com" \
+  -e GOTIFY_TOKEN="your-gotify-token" \
+  -e BARK_URL="https://api.day.app/your-device-key" \
+  -e ICON_URL="https://example.com/icon.png" \
+  ghcr.io/skyvense/gotify-to-bark:latest
+```
+
+#### 环境变量说明：
+- `GOTIFY_HOST`: Gotify 服务器地址（例如：https://gotify.example.com）
+- `GOTIFY_TOKEN`: Gotify 客户端 token
+- `BARK_URL`: Bark 服务器地址（例如：https://api.day.app/your-device-key）
+- `ICON_URL`: 通知图标 URL（可选，默认为 https://day.app/assets/images/avatar.jpg）
+
+#### Docker Compose
+
+创建 `docker-compose.yml` 文件：
+
+```yaml
+version: '3.8'
+services:
+  gotify2bark:
+    image: skyvense/gotify-to-bark:latest
+    container_name: gotify2bark
+    environment:
+      - GOTIFY_HOST=https://gotify.example.com
+      - GOTIFY_TOKEN=your-gotify-token
+      - BARK_URL=https://api.day.app/your-device-key
+      - ICON_URL=https://example.com/icon.png
+    restart: unless-stopped
+```
+
+然后运行：
+```bash
+docker-compose up -d
+```
 
 ### 命令行参数
 
@@ -125,4 +190,4 @@ MIT License
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！ 
+欢迎提交 Issue 和 Pull Request！
