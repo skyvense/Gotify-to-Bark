@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  gotify2bark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gotify2bark
+    restart: unless-stopped
+    environment:
+      # 请根据实际情况修改以下环境变量
+      - GOTIFY_HOST=${GOTIFY_HOST:-}
+      - GOTIFY_TOKEN=${GOTIFY_TOKEN:-}
+      - BARK_URL=${BARK_URL:-}
+      - ICON_URL=${ICON_URL:-}
+    # 如果需要持久化数据，可以添加volumes
+    # volumes:
+    #   - ./data:/app/data
+    
+    # 如果需要网络访问，可以添加ports
+    # ports:
+    #   - "8080:8080"
+    
+    # 健康检查（可选）
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    
+    # 资源限制（可选）
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+# 如果需要自定义网络
+# networks:
+#   gotify2bark-network:
+#     driver: bridge

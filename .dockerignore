@@ -1,0 +1,50 @@
+# Git相关
+.git
+.gitignore
+.gitattributes
+
+# 文档
+README.md
+RELEASE.md
+LICENSE
+*.md
+
+# IDE和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 构建产物
+gotify2bark
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 测试相关
+*.test
+*.out
+coverage.txt
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# Docker相关
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# GitHub Actions
+.github/
+
+# 其他
+*.bak
+*.orig
