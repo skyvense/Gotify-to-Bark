@@ -10,6 +10,8 @@
 - 支持自定义消息格式
 - 支持 HTTPS/WSS 连接
 - 可自定义通知图标
+- 支持 Bark 消息加密 (AES-128-CBC)
+- 支持 Bark 服务器 Basic Auth 认证
 
 ## 安装
 
@@ -51,6 +53,10 @@ docker run -d --name gotify2bark \
   -e GOTIFY_TOKEN="your-gotify-token" \
   -e BARK_URL="https://api.day.app/your-device-key" \
   -e ICON_URL="https://example.com/icon.png" \
+  -e BARK_ENCRYPTION_KEY="your-aes-key-16-bytes" \
+  -e BARK_ENCRYPTION_IV="your-aes-iv-16-bytes" \
+  -e BARK_SERVER_USER="username" \
+  -e BARK_SERVER_PASSWORD="password" \
   skyvense/gotify-to-bark:latest
 
 # 或使用 GitHub Container Registry
@@ -59,6 +65,10 @@ docker run -d --name gotify2bark \
   -e GOTIFY_TOKEN="your-gotify-token" \
   -e BARK_URL="https://api.day.app/your-device-key" \
   -e ICON_URL="https://example.com/icon.png" \
+  -e BARK_ENCRYPTION_KEY="your-aes-key-16-bytes" \
+  -e BARK_ENCRYPTION_IV="your-aes-iv-16-bytes" \
+  -e BARK_SERVER_USER="username" \
+  -e BARK_SERVER_PASSWORD="password" \
   ghcr.io/skyvense/gotify-to-bark:latest
 ```
 
@@ -67,6 +77,10 @@ docker run -d --name gotify2bark \
 - `GOTIFY_TOKEN`: Gotify 客户端 token
 - `BARK_URL`: Bark 服务器地址（例如：https://api.day.app/your-device-key）
 - `ICON_URL`: 通知图标 URL（可选，默认为 https://day.app/assets/images/avatar.jpg）
+- `BARK_ENCRYPTION_KEY`: Bark 加密密钥 (AES-128-CBC, 16字节，可选)
+- `BARK_ENCRYPTION_IV`: Bark 加密 IV (AES-128-CBC, 16字节, 可选)
+- `BARK_SERVER_USER`: Bark 服务器 Basic Auth 用户名 (可选)
+- `BARK_SERVER_PASSWORD`: Bark 服务器 Basic Auth 密码 (可选)
 
 #### Docker Compose
 
@@ -83,6 +97,11 @@ services:
       - GOTIFY_TOKEN=your-gotify-token
       - BARK_URL=https://api.day.app/your-device-key
       - ICON_URL=https://example.com/icon.png
+      # 可选配置
+      - BARK_ENCRYPTION_KEY=your-aes-key-16-bytes
+      - BARK_ENCRYPTION_IV=your-aes-iv-16-bytes
+      - BARK_SERVER_USER=username
+      - BARK_SERVER_PASSWORD=password
     restart: unless-stopped
 ```
 
@@ -94,7 +113,7 @@ docker-compose up -d
 ### 命令行参数
 
 ```bash
-go run main.go -host <gotify-host> -token <gotify-token> -target <bark-url> [-icon <icon-url>]
+go run main.go -host <gotify-host> -token <gotify-token> -target <bark-url> [-icon <icon-url>] [-aes-key <key>] [-aes-iv <iv>] [-bark-user <user>] [-bark-password <password>]
 ```
 
 参数说明：
@@ -102,6 +121,10 @@ go run main.go -host <gotify-host> -token <gotify-token> -target <bark-url> [-ic
 - `-token`: Gotify 客户端 token
 - `-target`: Bark 服务器地址（例如：https://api.day.app/your-device-key）
 - `-icon`: 通知图标 URL（可选，默认为 https://day.app/assets/images/avatar.jpg）
+- `-aes-key`: Bark 加密密钥 (AES-128-CBC, 16字节)
+- `-aes-iv`: Bark 加密 IV (AES-128-CBC, 16字节, 可选)
+- `-bark-user`: Bark 服务器 Basic Auth 用户名
+- `-bark-password`: Bark 服务器 Basic Auth 密码
 
 ### 示例
 
@@ -111,6 +134,15 @@ go run main.go -host https://gotify.example.com -token ABC123 -target https://ap
 
 # 使用自定义图标
 go run main.go -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key -icon https://example.com/icon.png
+
+# 使用加密和 Basic Auth
+go run main.go \
+  -host https://gotify.example.com \
+  -token ABC123 \
+  -target https://api.day.app/your-device-key \
+  -aes-key "1234567890123456" \
+  -bark-user "admin" \
+  -bark-password "secret"
 ```
 
 ### 构建可执行文件
@@ -121,11 +153,8 @@ go build -o gotify2bark
 
 然后运行：
 ```bash
-# 使用默认图标
+# 基本用法
 ./gotify2bark -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key
-
-# 使用自定义图标
-./gotify2bark -host https://gotify.example.com -token ABC123 -target https://api.day.app/your-device-key -icon https://example.com/icon.png
 ```
 
 ## 消息格式
@@ -140,7 +169,9 @@ go build -o gotify2bark
     "sound": "minuet",
     "group": "Gotify",
     "icon": "自定义图标URL",
-    "url": "Gotify服务器地址"
+    "url": "Gotify服务器地址",
+    "ciphertext": "加密后的内容（如果启用了加密）",
+    "iv": "加密IV（如果启用了加密）"
 }
 ```
 
