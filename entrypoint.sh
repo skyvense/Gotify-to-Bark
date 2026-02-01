@@ -21,6 +21,24 @@ if [ -n "$ICON_URL" ]; then
     ARGS="$ARGS -icon $ICON_URL"
 fi
 
+# 加密相关参数
+if [ -n "$BARK_ENCRYPTION_KEY" ]; then
+    ARGS="$ARGS -aes-key $BARK_ENCRYPTION_KEY"
+fi
+
+if [ -n "$BARK_ENCRYPTION_IV" ]; then
+    ARGS="$ARGS -aes-iv $BARK_ENCRYPTION_IV"
+fi
+
+# Basic Auth 相关参数
+if [ -n "$BARK_SERVER_USER" ]; then
+    ARGS="$ARGS -bark-user $BARK_SERVER_USER"
+fi
+
+if [ -n "$BARK_SERVER_PASSWORD" ]; then
+    ARGS="$ARGS -bark-password $BARK_SERVER_PASSWORD"
+fi
+
 echo "启动 Gotify-to-Bark 转发器..."
 echo "Gotify服务器: $GOTIFY_HOST"
 echo "Bark URL: $BARK_URL"

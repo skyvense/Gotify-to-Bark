@@ -2,7 +2,11 @@ package main
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -17,7 +21,7 @@ import (
 )
 
 // Version information (set during build)
-var version = "1.1.6"
+var version = "1.2.0"
 
 // Message represents a Gotify message
 type GotifyMessage struct {
@@ -31,12 +35,58 @@ type GotifyMessage struct {
 
 // Forwarder handles message forwarding
 type Forwarder struct {
-	ws          *websocket.Conn
-	debugLogger *log.Logger
-	targetURL   string
-	gotifyHost  string
-	gotifyToken string
-	iconURL     string
+	ws           *websocket.Conn
+	debugLogger  *log.Logger
+	targetURL    string
+	gotifyHost   string
+	gotifyToken  string
+	iconURL      string
+	aesKey       string
+	aesIV        string
+	barkUser     string
+	barkPassword string
+}
+
+func pkcs7Pad(data []byte, blockSize int) []byte {
+	padding := blockSize - (len(data) % blockSize)
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(data, padText...)
+}
+
+func encryptAESCBC(data []byte, key string, iv string) (string, error) {
+	keyBytes := []byte(key)
+	ivBytes := []byte(iv)
+
+	// Ensure key is 16, 24, or 32 bytes (AES-128, AES-192, AES-256)
+	// Bark uses AES-128, so key should be 16 bytes ideally.
+	// If the user provides a key that is not compatible, AES will fail.
+
+	block, err := aes.NewCipher(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	paddedData := pkcs7Pad(data, block.BlockSize())
+	ciphertext := make([]byte, len(paddedData))
+
+	mode := cipher.NewCBCEncrypter(block, ivBytes)
+	mode.CryptBlocks(ciphertext, paddedData)
+
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+// generateRandomIV generates a random 16-byte string for IV
+func generateRandomIV() (string, error) {
+	// We generate a random 16-char string using alphanumeric characters
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	for i := range b {
+		b[i] = charset[b[i]%byte(len(charset))]
+	}
+	return string(b), nil
 }
 
 func (f *Forwarder) sendMessage(msg *GotifyMessage) error {
@@ -55,6 +105,34 @@ func (f *Forwarder) sendMessage(msg *GotifyMessage) error {
 		"device_key": strings.TrimPrefix(f.targetURL, "https://"),
 	}
 
+	// Handle Encryption
+	if f.aesKey != "" {
+		jsonPayload, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload for encryption: %v", err)
+		}
+
+		iv := f.aesIV
+		if iv == "" {
+			var err error
+			iv, err = generateRandomIV()
+			if err != nil {
+				return fmt.Errorf("failed to generate random IV: %v", err)
+			}
+		}
+
+		ciphertext, err := encryptAESCBC(jsonPayload, f.aesKey, iv)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt payload: %v", err)
+		}
+
+		// Replace payload with encrypted version
+		payload = map[string]interface{}{
+			"ciphertext": ciphertext,
+			"iv":         iv,
+		}
+	}
+
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %v", err)
@@ -69,6 +147,11 @@ func (f *Forwarder) sendMessage(msg *GotifyMessage) error {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	// Add Basic Auth if configured
+	if f.barkUser != "" || f.barkPassword != "" {
+		req.SetBasicAuth(f.barkUser, f.barkPassword)
+	}
 
 	// Send request
 	resp, err := http.DefaultClient.Do(req)
@@ -167,6 +250,10 @@ func main() {
 	gotifyToken := flag.String("token", "", "Gotify client token")
 	targetURL := flag.String("target", "", "Target URL to forward messages to")
 	iconURL := flag.String("icon", "https://day.app/assets/images/avatar.jpg", "Icon URL for notifications")
+	aesKey := flag.String("aes-key", "", "AES-128 Key for Bark encryption (16 bytes)")
+	aesIV := flag.String("aes-iv", "", "AES-128 IV for Bark encryption (16 bytes, optional)")
+	barkUser := flag.String("bark-user", "", "Basic Auth Username for Bark server")
+	barkPassword := flag.String("bark-password", "", "Basic Auth Password for Bark server")
 	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
 
@@ -178,7 +265,7 @@ func main() {
 
 	// Validate required parameters
 	if *gotifyHost == "" || *gotifyToken == "" || *targetURL == "" {
-		fmt.Println("Usage: gotify-forwarder -host <gotify-host> -token <gotify-token> -target <target-url> [-icon <icon-url>]")
+		fmt.Println("Usage: gotify-forwarder -host <gotify-host> -token <gotify-token> -target <target-url> [-icon <icon-url>] [-aes-key <key>] [-aes-iv <iv>] [-bark-user <user>] [-bark-password <password>]")
 		fmt.Printf("Version: %s\n", version)
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -186,11 +273,15 @@ func main() {
 
 	// Create forwarder instance
 	forwarder := &Forwarder{
-		debugLogger: log.New(os.Stdout, "Gotify Forwarder: ", log.Lshortfile),
-		targetURL:   *targetURL,
-		gotifyHost:  *gotifyHost,
-		gotifyToken: *gotifyToken,
-		iconURL:     *iconURL,
+		debugLogger:  log.New(os.Stdout, "Gotify Forwarder: ", log.Lshortfile),
+		targetURL:    *targetURL,
+		gotifyHost:   *gotifyHost,
+		gotifyToken:  *gotifyToken,
+		iconURL:      *iconURL,
+		aesKey:       *aesKey,
+		aesIV:        *aesIV,
+		barkUser:     *barkUser,
+		barkPassword: *barkPassword,
 	}
 
 	// Start forwarding
