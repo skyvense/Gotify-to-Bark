@@ -21,7 +21,7 @@ import (
 )
 
 // Version information (set during build)
-var version = "1.2.0"
+var version = "1.2.1"
 
 // Message represents a Gotify message
 type GotifyMessage struct {
