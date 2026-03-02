@@ -11,9 +11,9 @@
                 "-host",
                 "https://gotify.ddn.pw",
                 "-token",
-                "C468M.bwd-tVFlF",
+                "xxxx",
                 "-target",
-                "https://bark.ddn.pw/57jS4A6RuViLCwCo39UHC9"
+                "https://bark.ddn.pw/xxxx"
             ],
             "env": {},
             "showLog": true
